@@ -2,6 +2,9 @@
 # Simple interactive image quality enhancement utility.
 # Fredrik Hederstierna 2022
 
+# python3 -m pip uninstall opencv-python-headless
+# python3 -m pip install --upgrade opencv-python
+
 import numpy as np
 import cv2
 
@@ -18,6 +21,7 @@ tint_value  = 1.0
 
 global fig
 
+# resize image, keeping the aspect ratio
 def resize_with_aspect_ratio(image, width=None, height=None, inter=cv2.INTER_AREA):
     dim = None
     (h, w) = image.shape[:2]
@@ -59,10 +63,12 @@ def draw_window():
 
     # apply CLAHE on orig copy image
     lab        = cv2.cvtColor(img_copy_orig, cv2.COLOR_BGR2LAB)
-    lab_planes = cv2.split(lab)
+    lab_planes_tuple = cv2.split(lab)
+    lab_planes_list = list(lab_planes_tuple)
     clahe      = cv2.createCLAHE(clipLimit=clahe_value, tileGridSize=(8,8))
-    lab_planes[0] = clahe.apply(lab_planes[0])
-    lab        = cv2.merge(lab_planes)
+    lab_planes_list[0] = clahe.apply(lab_planes_list[0])
+    lab_planes_tuple = tuple(lab_planes_list)
+    lab        = cv2.merge(lab_planes_tuple)
     img_clahe_orig = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
     cv2.putText(img_clahe_orig,
@@ -73,10 +79,12 @@ def draw_window():
     
     # apply CLAHE on GAMMA copy image
     lab        = cv2.cvtColor(img_gamma, cv2.COLOR_BGR2LAB)
-    lab_planes = cv2.split(lab)
+    lab_planes_tuple = cv2.split(lab)
+    lab_planes_list = list(lab_planes_tuple)
     clahe      = cv2.createCLAHE(clipLimit=clahe_value, tileGridSize=(8,8))
-    lab_planes[0] = clahe.apply(lab_planes[0])
-    lab        = cv2.merge(lab_planes)
+    lab_planes_list[0] = clahe.apply(lab_planes_list[0])
+    lab_planes_tuple = tuple(lab_planes_list)
+    lab        = cv2.merge(lab_planes_tuple)
     img_clahe_gamma = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
 
@@ -119,7 +127,6 @@ def draw_window():
     imgx = cv2.cvtColor(imgx, cv2.COLOR_RGB2BGR)
     # display image with opencv or any operation you like
     cv2.imshow("Histogram over Y component", imgx)
-
 
     
     cv2.putText(img_clahe_gamma,
@@ -167,11 +174,12 @@ def on_change_tint(value):
 #img_filename = r'./table3.png'
 #img_filename = r'./testx.jpg'
 #img_filename = r'./badtree.jpeg'
-img_filename = r'./badtree2.jpeg'
+#img_filename = r'./badtree2.jpeg'
 #img_filename = r'./tree4.jpg'
 #img_filename = r'./tree5.jpeg'
 #img_filename = r'./apples.jpeg'
 #img_filename = r'./beans.png'
+img_filename = r'./real.jpg'
 img_file = cv2.imread(img_filename)
 img_file = resize_with_aspect_ratio(img_file, width=480)
 
