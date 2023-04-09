@@ -18,6 +18,7 @@ win_name = 'main'
 gamma_value = 1.0
 clahe_value = 1.0
 tint_value  = 1.0
+noise_value = 1.0
 
 global fig
 
@@ -49,17 +50,42 @@ def draw_window():
     img_copy = img_file.copy()
     img_copy_orig = img_copy.copy()
 
-    # GAMMA
-    img_gamma = adjust_gamma(img_copy, gamma=gamma_value)
+    # NOISE
+    # Bi-lateral (SIGMA filter)
+    # https://lindevs.com/bilateral-filtering-of-the-image-using-opencv
+    #
+    # The d parameter defines filter size. In other words, it is the diameter of each pixel neighborhood.
+    # Sigma in the color space and sigma in the coordinate space control the amount of filtering.
+    #img_noise = cv2.bilateralFilter(img_copy, d=5, sigmaColor=50, sigmaSpace=50)
+    img_noise = cv2.bilateralFilter(img_copy, d=int(noise_value), sigmaColor=50, sigmaSpace=50)
+    img_noise_copy = img_noise.copy()
+
+    # add labels overlay
+    cv2.putText(img_noise_copy,
+                'sigma=' + "{:d}".format(int(noise_value)),
+                (0, img_noise_copy.shape[0] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.0, (0, 0, 255), 3)
+
+    # GAMMA on NOISE image
+    #img_gamma = adjust_gamma(img_copy, gamma=gamma_value)
+    img_gamma = adjust_gamma(img_noise, gamma=gamma_value)
     img_gamma_copy = img_gamma.copy()
 
+    # add labels overlay
+    cv2.putText(img_gamma_copy,
+                'sigma=' + "{:d}".format(int(noise_value)),
+                (0, img_gamma_copy.shape[0] - 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.0, (0, 0, 255), 3)
+    # add labels overlay
     cv2.putText(img_gamma_copy,
                 'gamma=' + "{:.2f}".format(gamma_value),
                 (0, img_gamma_copy.shape[0] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1.0, (0, 0, 255), 3)
 
-    img_gamma_stacked = np.hstack((img_copy, img_gamma_copy))
+    img_gamma_stacked = np.hstack((img_copy, img_noise_copy, img_gamma_copy))
 
     # apply CLAHE on orig copy image
     lab        = cv2.cvtColor(img_copy_orig, cv2.COLOR_BGR2LAB)
@@ -71,13 +97,14 @@ def draw_window():
     lab        = cv2.merge(lab_planes_tuple)
     img_clahe_orig = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
+    # add labels overlay
     cv2.putText(img_clahe_orig,
                 'clip=' + "{:.2f}".format(clahe_value),
                 (0, img_clahe_orig.shape[0] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1.0, (0, 0, 255), 3)
     
-    # apply CLAHE on GAMMA copy image
+    # apply CLAHE on GAMMA+NOISE copy image
     lab        = cv2.cvtColor(img_gamma, cv2.COLOR_BGR2LAB)
     lab_planes_tuple = cv2.split(lab)
     lab_planes_list = list(lab_planes_tuple)
@@ -129,6 +156,7 @@ def draw_window():
     cv2.imshow("Histogram over Y component", imgx)
 
     
+    # add labels overlay
     cv2.putText(img_clahe_gamma,
                 'gamma=' + "{:.2f}".format(gamma_value),
                 (0, img_clahe_gamma.shape[0] - 40),
@@ -144,9 +172,16 @@ def draw_window():
                 (300, img_clahe_gamma.shape[0] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1.0, (0, 0, 255), 3)
-    
+    cv2.putText(img_clahe_gamma,
+                'sigma=' + "{:d}".format(int(noise_value)),
+                (300, img_clahe_gamma.shape[0] - 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.0, (0, 0, 255), 3)
+
+    img_clahe_noise = img_clahe_orig
+
     # stacking images side-by-side (hstack / vstack)
-    img_clahe_stacked = np.hstack((img_clahe_orig, img_clahe_gamma))
+    img_clahe_stacked = np.hstack((img_clahe_orig, img_clahe_noise, img_clahe_gamma))
 
     img_all = np.vstack((img_gamma_stacked, img_clahe_stacked))
 
@@ -169,6 +204,11 @@ def on_change_equalize(value):
 def on_change_tint(value):
     global tint_value
     tint_value = 2.0 * (value / 100.0)
+    draw_window()
+
+def on_change_noise(value):
+    global noise_value
+    noise_value = (25.0 * (value / 100.0)) + 1
     draw_window()
 
 #img_filename = r'./table3.png'
@@ -197,6 +237,8 @@ cv2.createTrackbar('contrast',   win_name, 0, 100, on_change_equalize)
 cv2.setTrackbarPos('contrast',   win_name, 0)
 cv2.createTrackbar('color',      win_name, 0, 100, on_change_tint)
 cv2.setTrackbarPos('color',      win_name, 50)
+cv2.createTrackbar('noise',      win_name, 0, 100, on_change_noise)
+cv2.setTrackbarPos('noise',      win_name, 0)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
