@@ -6,6 +6,16 @@
 # python3 -m pip uninstall opencv-python-headless
 # python3 -m pip install --upgrade opencv-python
 
+# Some info on meta in the video stream
+#
+#  stream_index   = frame count
+#  key_frame      = iframe or pframe
+#  pkt_pts        = packet presentation time stamp
+#  pkt_pts_time   = packet presentation time stamp time
+#  pkt_duration_time = frame rate
+#  pkt_pos        = packet position (relative to the audio packets to keep sync with video)
+#  pkt_size       = iframes are much larger and pframes are generally much smaller
+
 import numpy as np
 import cv2
 
@@ -20,6 +30,9 @@ gamma_value = 1.0
 clahe_value = 1.0
 tint_value  = 1.0
 noise_value = 1.0
+
+frame_count = 0
+frame_count_max = 0
 
 global fig
 
@@ -216,9 +229,19 @@ def on_change_noise(value):
 
 
 # define a video capture object
-vid = cv2.VideoCapture(0)
+
+vid_filename = r'./day_to_night.mp4'
+vid = cv2.VideoCapture(vid_filename)
+#
+# Debug meta info
+fps = vid.get(cv2.CAP_PROP_FPS)
+nbr = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+dur = nbr/fps
+ts  = vid.get(cv2.CAP_PROP_POS_MSEC)
+print('Fps %d'%fps, 'Frames %d'%nbr, 'Duration %d seconds'%dur, 'First timestamp %d'%ts)
 
 first_round = True
+frame_count_max = nbr
 
 fig = plt.figure()
 
@@ -227,6 +250,11 @@ while(vid.isOpened()):
     # Capture the video frame
     # by frame
     frame_exists, cur_frame = vid.read()
+
+    if frame_exists == False:
+        break;
+
+    frame_count += 1
 
     # the 'q' button is set as the
     # quitting button you may use any
@@ -255,6 +283,9 @@ while(vid.isOpened()):
         cv2.createTrackbar('noise',      win_name, 0, 100, on_change_noise)
         cv2.setTrackbarPos('noise',      win_name, 0)
         first_round = False
+
+    ts = vid.get(cv2.CAP_PROP_POS_MSEC)
+    cv2.setWindowTitle(win_name, "Frame %d/%d Time %d/%d ms"%(frame_count, frame_count_max, ts, dur*1000))
 
 # After the loop release the cap object
 vid.release()
